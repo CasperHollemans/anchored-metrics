@@ -10,11 +10,15 @@ v0.1 stage 1: `anchored-metrics sessions <repo-path>` writes `out/sessions.csv`.
 - `docs/roadmap.md`: later stages (prompts.csv: corrections, ambiguous prompts,
   file changes). Not agreed behaviour yet. Read it before starting a new stage.
 
+## Workflow
+New stages and behaviour changes follow the `metrics-stage` skill
+(`.claude/skills/metrics-stage/SKILL.md`): inspect, stories, acceptance tests,
+lock, plan, TDD, review. Load it before starting.
+
 ## Rules
-- **BDD then TDD.** A behaviour is written in `docs/stories/` first, then as a
-  failing acceptance test, then implemented test-first.
-- **Acceptance tests** follow [0002](docs/decisions/0002-acceptance-test-dsl.md).
-  Each test comment starts with its behaviour ID.
+- **Acceptance tests are locked.** Never change anything under `acceptance/`
+  without explicit agreement first, not with Edit or Write and not through the
+  shell. If a test seems wrong, stop and propose the change.
 - **Behaviour changes update the docs in the same commit:** the story, a new
   decision record (superseding the old one, never editing it), and the tests.
 - **Transcript parsing lives in one package** ([0003](docs/decisions/0003-parsing-in-one-module.md)).
