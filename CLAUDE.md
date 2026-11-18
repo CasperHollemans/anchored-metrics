@@ -1,10 +1,12 @@
 # anchored-metrics
 
 A local CLI that reads Claude Code session transcripts and writes metrics as CSV.
-v0.1 stage 1: `anchored-metrics sessions <repo-path>` writes `out/sessions.csv`.
+`anchored-metrics sync <repo-path>` writes `out/sessions.csv` and
+`out/prompts.csv`. Stage 1 (sessions) is done; stage 2 (prompts) is in progress.
 
 ## Docs
-- `docs/stories/`: user stories and behaviours with IDs (`S-01` …). This is the contract.
+- `docs/stories/`: user stories and behaviours with IDs (`S-01`, `P-01` …). This is the contract.
+- `corrections.txt`: the correction word library ([0012](docs/decisions/0012-correction-word-library.md)).
 - `docs/decisions/`: decision records (ADRs). Read the index before changing behaviour.
 - `docs/transcript-format.md`: what we observed in real transcripts, including traps.
 - `docs/roadmap.md`: later stages (prompts.csv: corrections, ambiguous prompts,

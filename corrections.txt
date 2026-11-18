@@ -1,0 +1,137 @@
+# Correction library (docs/stories/prompts.md, P-11 to P-14 and P-22).
+#
+# [category] starts a category. One entry per line: a word or a phrase.
+# Matching ignores case and only matches whole words.
+# A trailing * matches any word that starts with it: verbeter* matches verbeteren.
+# Lines starting with # are comments.
+#
+# The score command (P-21) shows per category how often an entry fired and
+# how often that was right. Prune noisy entries based on that, not on gut feeling.
+
+[wrong]
+# The result is wrong or broken.
+wrong
+incorrect
+broken
+not working
+doesn't work
+does not work
+didn't work
+still fails
+still failing
+still broken
+that's not right
+not right
+error
+bug
+fout
+klopt niet
+werkt niet
+werkt nog steeds niet
+gaat mis
+kapot
+niet goed
+
+[redirect]
+# Not what I meant: do it differently.
+instead
+rather
+not what i meant
+not what i asked
+i meant
+i said
+don't
+do not
+stop
+no
+liever
+in plaats van
+bedoelde
+bedoel
+niet wat ik
+zei ik
+niet doen
+nee
+stop
+wil ik niet
+wil niet
+niet zo
+i don't want
+i do not want
+not like that
+
+[style]
+# Code style, naming or formatting isn't right.
+style
+naming
+rename
+formatting
+format
+indentation
+readable
+readability
+consistent
+convention
+stijl
+naamgeving
+hernoem*
+opmaak
+leesbaar*
+consistent
+
+[cleanup]
+# Tidy up what was built.
+cleanup
+clean up
+clean it up
+tidy
+refactor*
+simplify
+simpler
+remove unused
+dead code
+duplicate*
+opruim*
+ruim op
+vereenvoudig*
+simpeler
+dubbel*
+
+[improve]
+# Make it better than it is.
+improve*
+better
+optimi*
+enhance*
+polish
+verbeter*
+beter
+optimaliseer*
+
+[missing]
+# Something was left out or forgotten.
+forgot
+forgotten
+missing
+you missed
+also
+as well
+still need*
+vergeten
+ontbreekt
+mist
+ook nog
+nog steeds
+
+[revert]
+# Undo what was done.
+revert*
+undo
+roll back
+rollback
+put it back
+go back
+terugdraai*
+draai terug
+ongedaan
+zet terug

@@ -8,7 +8,7 @@ Template:
 
 ```
 # NNNN. Title
-Status: Accepted | Superseded by NNNN
+Status: Proposed | Accepted | Superseded by NNNN
 Date: YYYY-MM-DD
 
 ## Context
@@ -28,3 +28,5 @@ Date: YYYY-MM-DD
 | [0008](0008-main-and-subagent-tokens.md) | Main and subagent tokens counted separately | Accepted |
 | [0009](0009-stage-1-scope.md) | Stage 1 scope | Accepted |
 | [0010](0010-models-as-list.md) | Models as a list column | Accepted |
+| [0011](0011-one-sync-command.md) | One sync command writes every CSV | Accepted |
+| [0012](0012-correction-word-library.md) | Corrections detected locally with a categorised word library | Accepted |

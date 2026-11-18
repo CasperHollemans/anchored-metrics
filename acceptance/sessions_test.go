@@ -314,8 +314,8 @@ func TestCSVContainsNoPathsOrPromptText(t *testing.T) {
 
 	s.When.Sync()
 
-	s.Then.CSVHasNoPaths()
-	s.Then.CSVDoesNotContain("billing", "client X", "invoices")
+	s.Then.CSVsHaveNoPaths()
+	s.Then.CSVsDoNotContain("billing", "client X", "invoices")
 }
 
 // -------------------------------------------------------- syncing over time
@@ -346,7 +346,7 @@ func TestSyncingAgainWithoutChangesChangesNothing(t *testing.T) {
 
 	s.When.Sync()
 
-	s.Then.CSVUnchangedByLastSync()
+	s.Then.CSVsUnchangedByLastSync()
 }
 
 // S-15 A session that kept running after a sync gets its row replaced with the

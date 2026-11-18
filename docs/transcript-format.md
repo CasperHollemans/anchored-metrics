@@ -10,6 +10,7 @@ whenever the parser meets something new ([0003](decisions/0003-parsing-in-one-mo
 |---|---|---|---|
 | 2026-11-13 | 2.1.44 – 2.1.322 | 1 repo + 1 of its worktrees: 5 sessions, 1 to 2,592 records each | Structure only: record types, field names and types, counts |
 | 2026-11-17 | 2.1.286 – 2.1.295 | 1 session from another repo: 5 subagent transcripts | Same |
+| 2026-11-18 | 2.1.44 – 2.1.322 | 5 main sessions across 3 repos, including one with a known interrupt | Stage 2 signals: prompts, tools, file edits, denials. Only fixed system markers were matched in text; counted, never printed |
 
 Message text was never printed. Paths were masked.
 
@@ -80,6 +81,98 @@ Also present but unused: `message.usage.output_tokens_details.thinking_tokens`,
   tool call, and the parent's tool result has `toolUseResult.agentId`.
 - A subagent can use a different model from the main chat. One ran entirely on
   `claude-haiku-5-5` under an Opus session.
+
+## Prompts, tools and file edits (stage 2)
+
+### What a `user` record is
+A `user` record is one of four things:
+
+| Kind | How to tell | Seen |
+|---|---|---|
+| A prompt typed by the user | `message.content` is text, not `tool_result` blocks; not `isMeta`; not `isCompactSummary` | 3–95 per session |
+| A tool result | `message.content` holds `tool_result` blocks | most `user` records |
+| Meta | `isMeta: true` | a few |
+| Compaction summary | `isCompactSummary: true` | 1 |
+
+- Newer prompts carry `turnOrigin: "human"`, `origin.kind: "human"` and
+  `promptSource: "sdk"`. Older sessions don't have these fields.
+- Some "prompts" aren't typed by a human: text starting with
+  `<task-notification>` (a background task finished, 3–5 per session) or
+  `<bash-input>` (the user ran a shell command). Classify them by their leading tag.
+- Prompt length varied from 1 to 1,307 words, with a median of 14–18.
+
+- A prompt's `message.content` is a plain string, or a list with `image` and
+  `text` blocks when the user pasted an image (3 of ~220 prompts). Its text is
+  the string, or the `text` blocks joined.
+
+### Interrupts
+- The interrupt marker's `message.content` is a list with one `text` block
+  (not a plain string), and it has no `isMeta`.
+- A user interrupt is a prompt-kind record whose text is exactly
+  `[Request interrupted by user]`, or starts with
+  `[Request interrupted by user for tool use]`. Found once, in the session with a
+  known interrupt; none in the others.
+- `toolUseResult.interrupted` (on Bash results) is a different thing: a tool
+  run that was cut off.
+
+### Tool calls
+- `tool_use` blocks in assistant content have `id` and `name`. The matching
+  `tool_result` in a later user record has `tool_use_id` and optionally `is_error`.
+- Names seen: `Bash`, `Edit`, `Write`, `Read`, `Glob`, `TodoWrite`, `Agent`,
+  `Skill`, `AskUserQuestion`, `WebSearch`, `WebFetch`, `ToolSearch`, `TaskStop`,
+  and `mcp__<server>__<tool>`.
+- `AskUserQuestion` (Claude asking the user a question) appeared once. Its
+  `toolUseResult` has `questions` and `answers`.
+- `is_error` is mostly on `Bash`, which is a command failing, not the user correcting.
+
+### Denials
+- `permissionDecision.decision` is `accept` or `reject`, and
+  `permissionDecision.source` is `config` or `hook`. `toolDenialKind:
+  "permission-rule"` was seen.
+- Every `reject` seen came from a hook or a permission rule, not from the user
+  saying no. All sessions ran in `permissionMode` `auto` or `bypassPermissions`,
+  so a user clicking "deny" was never seen.
+
+### File edits
+- `Edit` results: `toolUseResult` has `filePath`, `oldString`, `newString`,
+  `originalFile`, `replaceAll`, `structuredPatch`, `userModified`, and sometimes
+  `contentNotInModelContext` or `staleRecovered`.
+- `Write` results: `content`, `filePath`, `originalFile`, `structuredPatch`,
+  `type`, `userModified`, and sometimes `memdirStamped`. `userModified` was
+  missing in the oldest session.
+- `toolUseResult` is sometimes a plain string instead of an object (1–3 per
+  session, probably an error message).
+- `structuredPatch` is a list of hunks with `oldStart`, `oldLines`, `newStart`,
+  `newLines` and `lines`. Each entry in `lines` starts with `+` (added), `-`
+  (removed) or a space (context). Count the `+` and `-` lines.
+- A `Write` that creates a file has `type: "create"`, `originalFile: null` and an
+  **empty** `structuredPatch` (92 of 92 creates seen). Its added lines must be
+  counted from `content`. A `Write` with `type: "update"` has hunks like an `Edit`.
+- `filePath` is a path and must never be written out.
+- `userModified` may mean the user changed Claude's proposed edit, a possible
+  correction signal. Not verified.
+- `file-history-snapshot` and `file-history-delta` records track backups:
+  `messageId`, `trackingPath` (a path), and `backup.version` and `backupTime`.
+- `attachment.type: "edited_text_file"` appeared 8–9 times per session. It
+  probably means a file changed outside Claude. Not verified.
+
+### Other
+- `queue-operation` records (`enqueue`, `dequeue`, `remove`) are **not** a
+  mid-turn signal: in the desktop app *every* prompt goes enqueue → dequeue →
+  prompt. Patterns such as enqueue, enqueue (queued while Claude was busy) and
+  `remove` may mean something, but this isn't understood yet.
+- An interrupt marker is immediately followed by the user's next prompt (seen as
+  two prompt-kind records in a row).
+- An `Agent` tool result carries `toolUseResult.agentId`, linking the spawning
+  tool call to `subagents/agent-<agentId>.jsonl`. Other keys seen: `agentType`,
+  `status`, `content`, `prompt`, `resolvedModel`, `usage`, `totalTokens`,
+  `totalToolUseCount`, `totalDurationMs`, `toolStats` and a few `harness*` and
+  `handback*` fields.
+- In nearly every session, many records share a `parentUuid` with a sibling.
+  This looks structural (parallel tool calls), so branching is **not** a clean
+  rewind or undo signal without further study.
+- `mode` records (`mode: "normal"`) and `permissionMode` on prompts track the mode
+  the session ran in.
 
 ## Traps
 

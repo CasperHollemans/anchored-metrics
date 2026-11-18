@@ -1,10 +1,10 @@
 # Roadmap
 
-What comes after stage 1, so it isn't lost. Items here are **not agreed
-behaviours yet**. They become stories in `docs/stories/` once we've inspected
-the transcripts for them and decided what counts.
+What comes later, so it isn't lost. Items here are **not agreed behaviours
+yet**. They become stories in `docs/stories/` once we've inspected the
+transcripts for them and decided what counts.
 
-## Stage 1: sessions.csv (in progress)
+## Stage 1: sessions.csv (done)
 See [stories/sessions.md](stories/sessions.md).
 
 Open: **thinking tokens.** Dropped because we thought there would only be an
@@ -13,51 +13,31 @@ estimate. The inspection showed an exact count exists
 [transcript-format.md](transcript-format.md)). It could come back as
 `main_thinking` and `subagent_thinking` columns.
 
-## Stage 2: prompts.csv (most valuable)
-One row per user prompt in the main conversation. Subagents are excluded from
-conversation metrics, because the user never talks to them
-([0008](decisions/0008-main-and-subagent-tokens.md)). Subagent file changes
-still count toward the prompt that spawned them.
+## Stage 2: prompts.csv (in progress)
+See [stories/prompts.md](stories/prompts.md): corrections with categories,
+interrupts, clarifying questions, file changes and models per prompt.
 
-Priorities, in order of value:
+## Later
 
-### 1. User corrections
-Did the user have to correct or redirect Claude after this prompt?
-Signals to investigate:
-- the user interrupting Claude mid-reply;
-- rejected tool calls (`toolDenialKind` and `permissionDecision` were seen, not yet checked in detail);
-- undo or rewind;
-- a follow-up prompt that redirects ("no", "that's wrong", "instead …").
+### Model judge for corrections
+If the word library scores poorly against the labels, add a model that judges
+prompts at sync time, behind the same interface. This would need a decision
+superseding [0004](decisions/0004-local-and-anonymous.md) for that metric
+([0012](decisions/0012-correction-word-library.md)).
 
-### 2. Ambiguous prompts
-Was the prompt unclear enough that Claude had to ask, or got it wrong?
-Signals to investigate:
-- Claude asking a clarifying question (an `AskUserQuestion` call, or a reply
-  ending in a question with no tool use);
-- a correction soon after the prompt.
+### Signals that need more study
+Seen in the stage 2 inspection, but not understood well enough to measure
+([transcript-format.md](transcript-format.md)):
+- **Mid-turn messages.** The user typing while Claude works. `queue-operation`
+  isn't it (every prompt is queued), but patterns like enqueue, enqueue or
+  `remove` might be.
+- **The user changing Claude's edit.** The `userModified` field on edit results.
+- **The user refusing a tool.** Not seen, because all sessions ran in auto or
+  bypass mode.
+- **Undo and rewind.** Branching `parentUuid`s look structural, not like rewinds.
+- **Edited files outside Claude.** `attachment.type: "edited_text_file"`.
 
-### 3. File changes
-What did this prompt change? Files touched, and lines added and removed.
-Signals to investigate:
-- edit and write tool calls;
-- `file-history-delta` records.
-
-This is likely the easiest of the three.
-
-### Also per prompt
-- **Model per prompt**, to see whether things go wrong more often with certain
-  models ([0010](decisions/0010-models-as-list.md)).
-
-### Open questions before stage 2
-- **Local versus meaning.** Reliably telling a correction or an ambiguous prompt
-  from the text needs understanding it. A model could judge that, but it would
-  mean sending prompts to an API, which [0004](decisions/0004-local-and-anonymous.md)
-  rules out. The options: structural signals plus simple local text patterns (less
-  precise, private), or revisit 0004 for this metric only.
-- **Prompt text.** Pattern matching reads the text locally, but the CSV must
-  never contain it.
-
-### First step of stage 2
-Inspect transcripts for the signals above, structure only, the same way as in
-stage 1. Record the findings in `transcript-format.md`, then decide together
-what counts as a correction or an ambiguous prompt.
+### Ambiguous prompts
+Beyond `asked_question`: a reply that ends in a question without using a tool,
+or a correction soon after a short prompt. `words` and `correction` in
+`prompts.csv` already allow a first look in the dashboard.

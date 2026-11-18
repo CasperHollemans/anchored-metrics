@@ -9,6 +9,9 @@ Seven steps, in order. Steps marked **gate** wait for the user's explicit
 approval before the next step starts. Never skip a gate, and never treat
 silence as approval.
 
+**Never commit without the user's explicit permission for that commit.**
+Propose the message and contents, then wait.
+
 ## 1. Inspect the real transcripts
 Before any story: find out what the transcripts actually contain for the new
 metric.
@@ -35,7 +38,7 @@ Together with the user, in conversation:
   `docs/transcript-format.md` and nothing else.
 - Run them: every new test must fail for the right reason (an assertion, not a
   build or setup error). `TestEveryBehaviourHasAnAcceptanceTest` must pass.
-- Commit: "Add failing acceptance tests for …".
+- Propose a commit ("Add failing acceptance tests for …") and wait for permission.
 
 ## 4. Review and lock (**gate**)
 The user reviews the tests and locks `acceptance/` (a local deny rule in
@@ -66,7 +69,7 @@ Rules:
   error paths and guards.
 - If code was written without a test that failed first, prove the test can fail:
   break the code on purpose, watch the test fail, then restore it.
-- Commit at green points. The acceptance tests go green as the work completes.
+- At green points, propose a commit and wait. The acceptance tests go green as the work completes.
 - Run `go vet ./...` and `gofmt -l .` before every commit.
 
 ## 7. Review (**gate**)

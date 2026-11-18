@@ -4,10 +4,11 @@
 analyse how I work with Claude.*
 
 ```
-anchored-metrics sessions <repo-path>
+anchored-metrics sync <repo-path>
 ```
 
-Writes `out/sessions.csv` in the current directory.
+Writes `out/sessions.csv` in the current directory, together with the other
+CSVs ([0011](../decisions/0011-one-sync-command.md)).
 
 Each behaviour has an ID. Every acceptance test starts its comment with the ID
 it covers, and a test enforces that each ID has a test. Don't renumber: retire
