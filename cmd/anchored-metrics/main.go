@@ -9,7 +9,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"anchored-metrics/internal/sessions"
 )
@@ -21,14 +20,11 @@ func main() {
 		fmt.Fprintln(os.Stderr, "usage: anchored-metrics sessions <repo-path>")
 		os.Exit(2)
 	}
-	repoPath := os.Args[2]
-	repo := filepath.Base(filepath.Clean(repoPath))
-
 	home, err := os.UserHomeDir()
 	if err != nil {
 		fail(err)
 	}
-	res, err := sessions.Sync(home, repoPath, outPath)
+	res, err := sessions.Sync(home, os.Args[2], outPath)
 	if err != nil {
 		fail(err)
 	}
@@ -36,10 +32,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "warning: skipped %d unreadable %s\n", res.Skipped, plural(res.Skipped, "line", "lines"))
 	}
 	if res.Sessions == 0 {
-		fmt.Fprintf(os.Stderr, "warning: no Claude Code sessions found for %s; nothing written\n", repo)
+		fmt.Fprintf(os.Stderr, "warning: no Claude Code sessions found for %s; nothing written\n", res.Repo)
 		return
 	}
-	fmt.Printf("synced %d %s for %s to %s\n", res.Sessions, plural(res.Sessions, "session", "sessions"), repo, outPath)
+	fmt.Printf("synced %d %s for %s to %s\n", res.Sessions, plural(res.Sessions, "session", "sessions"), res.Repo, outPath)
 }
 
 func plural(n int, one, many string) string {

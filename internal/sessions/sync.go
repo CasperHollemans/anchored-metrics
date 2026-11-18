@@ -9,8 +9,9 @@ import (
 
 // Result tells what a sync did.
 type Result struct {
-	Sessions int // sessions found and synced
-	Skipped  int // unreadable transcript lines
+	Repo     string // repo name, as written in the CSV
+	Sessions int    // sessions found and synced
+	Skipped  int    // unreadable transcript lines
 }
 
 // Sync reads every session of the repo (and its worktrees) and updates the CSV
@@ -25,36 +26,26 @@ func Sync(home, repoPath, outPath string) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	repo := filepath.Base(repoPath)
+	res := Result{Repo: filepath.Base(repoPath)}
 	folders, err := transcript.RepoFolders(transcript.ProjectsDir(home), repoPath, worktree.List(repoPath))
 	if err != nil {
-		return Result{}, err
+		return res, err
 	}
 
-	var res Result
 	var rows []Row
 	for _, folder := range folders {
 		found, err := transcript.Sessions(folder)
 		if err != nil {
-			return Result{}, err
+			return res, err
 		}
 		for _, s := range found {
-			res.Sessions++
-			main, err := transcript.ParseFile(s.Main)
+			row, ok, skipped, err := readSession(s, res.Repo)
 			if err != nil {
-				return Result{}, err
+				return res, err
 			}
-			res.Skipped += main.Skipped
-			var subs []transcript.Transcript
-			for _, path := range s.Subagents {
-				sub, err := transcript.ParseFile(path)
-				if err != nil {
-					return Result{}, err
-				}
-				res.Skipped += sub.Skipped
-				subs = append(subs, sub)
-			}
-			if row, ok := Summarize(s.ID, repo, main, subs); ok {
+			res.Sessions++
+			res.Skipped += skipped
+			if ok {
 				rows = append(rows, row)
 			}
 		}
@@ -65,7 +56,27 @@ func Sync(home, repoPath, outPath string) (Result, error) {
 
 	existing, err := ReadCSV(outPath)
 	if err != nil {
-		return Result{}, err
+		return res, err
 	}
 	return res, WriteCSV(outPath, Merge(existing, rows))
+}
+
+// readSession parses a session's main and subagent transcripts into a row.
+func readSession(s transcript.Session, repo string) (row Row, ok bool, skipped int, err error) {
+	main, err := transcript.ParseFile(s.Main)
+	if err != nil {
+		return Row{}, false, 0, err
+	}
+	skipped = main.Skipped
+	var subs []transcript.Transcript
+	for _, path := range s.Subagents {
+		sub, err := transcript.ParseFile(path)
+		if err != nil {
+			return Row{}, false, 0, err
+		}
+		skipped += sub.Skipped
+		subs = append(subs, sub)
+	}
+	row, ok = Summarize(s.ID, repo, main, subs)
+	return row, ok, skipped, nil
 }

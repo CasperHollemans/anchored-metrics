@@ -69,56 +69,78 @@ func ParseFile(path string) (Transcript, error) {
 // Parse reads a transcript in JSONL format. Unreadable lines are counted and
 // skipped; unknown record types and fields are ignored.
 func Parse(r io.Reader) (Transcript, error) {
-	var tr Transcript
-	replyIndex := map[string]int{}
+	p := parser{replyIndex: map[string]int{}}
 	br := bufio.NewReader(r) // no line-length limit: some records are megabytes
 	for {
 		line, err := br.ReadBytes('\n')
 		if len(bytes.TrimSpace(line)) > 0 {
-			tr.add(line, replyIndex)
+			p.addLine(line)
 		}
 		if errors.Is(err, io.EOF) {
-			return tr, nil
+			return p.tr, nil
 		}
 		if err != nil {
-			return tr, err
+			return p.tr, err
 		}
 	}
 }
 
-func (tr *Transcript) add(line []byte, replyIndex map[string]int) {
+type parser struct {
+	tr         Transcript
+	replyIndex map[string]int // message ID -> index in tr.Replies
+}
+
+func (p *parser) addLine(line []byte) {
 	var rec record
 	if err := json.Unmarshal(line, &rec); err != nil {
-		tr.Skipped++
+		p.tr.Skipped++
 		return
 	}
-	if rec.Type != "user" && rec.Type != "assistant" {
-		return
-	}
-	if rec.Type == "assistant" && rec.Message != nil && rec.Message.Model == syntheticModel {
+	if !rec.isPromptOrRealReply() {
 		return
 	}
 	at, err := time.Parse(time.RFC3339Nano, rec.Timestamp)
 	if err != nil {
-		tr.Skipped++
+		p.tr.Skipped++
 		return
 	}
-	tr.Times = append(tr.Times, at.UTC())
+	p.tr.Times = append(p.tr.Times, at.UTC())
+	if reply, ok := rec.reply(); ok {
+		p.addReply(reply)
+	}
+}
 
-	if rec.Type != "assistant" || rec.Message == nil || rec.Message.ID == "" || rec.Message.Usage == nil {
+// addReply keeps one copy per message ID, the latest: Claude Code writes a
+// line per content block, each repeating the same usage.
+func (p *parser) addReply(reply Reply) {
+	if i, seen := p.replyIndex[reply.ID]; seen {
+		p.tr.Replies[i] = reply
 		return
+	}
+	p.replyIndex[reply.ID] = len(p.tr.Replies)
+	p.tr.Replies = append(p.tr.Replies, reply)
+}
+
+func (rec record) isPromptOrRealReply() bool {
+	switch rec.Type {
+	case "user":
+		return true
+	case "assistant":
+		return rec.Message == nil || rec.Message.Model != syntheticModel
+	default:
+		return false
+	}
+}
+
+// reply is the record's reply, if it is an assistant record with an ID and usage.
+func (rec record) reply() (Reply, bool) {
+	if rec.Type != "assistant" || rec.Message == nil || rec.Message.ID == "" || rec.Message.Usage == nil {
+		return Reply{}, false
 	}
 	u := rec.Message.Usage
-	reply := Reply{
+	return Reply{
 		ID:    rec.Message.ID,
 		Model: rec.Message.Model,
 		Usage: Usage{u.InputTokens, u.OutputTokens, u.CacheReadInputTokens, u.CacheCreationInputTokens},
-	}
-	// One line per content block, each repeating the usage: keep one, the latest.
-	if i, seen := replyIndex[reply.ID]; seen {
-		tr.Replies[i] = reply
-		return
-	}
-	replyIndex[reply.ID] = len(tr.Replies)
-	tr.Replies = append(tr.Replies, reply)
+	}, true
 }

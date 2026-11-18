@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 )
 
@@ -39,13 +38,12 @@ func RepoFolders(projectsDir, repoPath string, worktrees []string) ([]string, er
 		wanted[FolderName(w)] = true
 	}
 	var folders []string
-	for _, e := range entries {
+	for _, e := range entries { // os.ReadDir returns entries sorted by name
 		name := e.Name()
 		if e.IsDir() && (wanted[name] || strings.HasPrefix(name, own+claudeWorktrees)) {
 			folders = append(folders, filepath.Join(projectsDir, name))
 		}
 	}
-	sort.Strings(folders)
 	return folders, nil
 }
 
@@ -59,11 +57,11 @@ type Session struct {
 // Sessions lists the sessions in a project folder: each <id>.jsonl, with the
 // subagent transcripts in <id>/subagents/agent-*.jsonl. Everything else is ignored.
 func Sessions(folder string) ([]Session, error) {
+	// filepath.Glob returns matches in name order.
 	mains, err := filepath.Glob(filepath.Join(folder, "*.jsonl"))
 	if err != nil {
 		return nil, err
 	}
-	sort.Strings(mains)
 	var sessions []Session
 	for _, main := range mains {
 		id := strings.TrimSuffix(filepath.Base(main), ".jsonl")
@@ -71,7 +69,6 @@ func Sessions(folder string) ([]Session, error) {
 		if err != nil {
 			return nil, err
 		}
-		sort.Strings(subs)
 		sessions = append(sessions, Session{ID: id, Main: main, Subagents: subs})
 	}
 	return sessions, nil
